@@ -113,10 +113,16 @@ class AiEmployeeEnvironment(Environment):
 
     @property
     def state(self) -> State:
+        # Clamp scores to open interval (0, 1) — validator requirement
+        clamped_tasks = {}
+        for tid, ts in self._state["tasks"].items():
+            ct = dict(ts)
+            ct["score"] = max(1e-4, min(1 - 1e-4, ct["score"]))
+            clamped_tasks[tid] = ct
         return State(
             episode_id=self._episode_id,
             step_count=self._state["step"],
-            tasks=self._state["tasks"],
+            tasks=clamped_tasks,
             current_task_id=self._state["current_task_id"],
             total_reward=round(self._state["total_reward"], 4),
             history=self._state["history"],
