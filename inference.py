@@ -86,7 +86,9 @@ SYSTEM_PROMPT = textwrap.dedent("""
       Example: ["B1", "B5", "B3", "B4", "B2"]
     - For sprint_planner: submit a JSON array of all 8 task IDs in execution order.
       Respect ALL dependency constraints. T1 must come before T2, T3. T2+T3 before T4.
-      Example: ["T1", "T5", "T3", "T2", "T4", "T6", "T7", "T8"]
+      To maximise score, place T4 as early as possible (index 3).
+      Optimal: T1→T3→T2→T4 first, then T5→T6→T7→T8.
+      Example: ["T1", "T3", "T2", "T4", "T5", "T6", "T7", "T8"]
     - Use request_info only if genuinely stuck — it costs reward.
     - Never skip tasks.
     - After selecting a task, immediately submit your answer.

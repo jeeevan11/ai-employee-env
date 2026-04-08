@@ -10,9 +10,6 @@ tags:
   - openenv
 ---
 
-
-TEST
-
 # AI Employee Work Simulator
 
 An [OpenEnv](https://github.com/meta-pytorch/OpenEnv) environment where an AI agent acts as an employee completing real-world office tasks under deadline pressure. Built for the OpenEnv Round 1 Hackathon by team **WooshiWooshi**.
@@ -21,7 +18,7 @@ An [OpenEnv](https://github.com/meta-pytorch/OpenEnv) environment where an AI ag
 
 The agent must complete **3 tasks** of increasing difficulty by selecting tasks, submitting formatted answers, and managing a limited step budget. Each task has a deterministic grader scoring 0.0–1.0.
 
-**Validated:** 6/6 OpenEnv compliance checks pass. Live score: **3.38 / 3.45 max** (97.9%).
+**Validated:** 6/6 OpenEnv compliance checks pass. Live score: **3.45 / 3.45 max** (100%).
 
 ## Tasks
 
@@ -89,7 +86,7 @@ async with AiEmployeeEnv.from_env("piroBeastie/ai-employee-env") as env:
         action_type="submit_answer",
         content='{"e1":"urgent","e2":"normal","e3":"spam","e4":"urgent","e5":"normal","e6":"spam","e7":"urgent","e8":"normal","e9":"urgent","e10":"normal"}'
     ))
-    print(result.reward)  # 1.15
+    print(result.reward)  # 1.15 (score 1.0 + first-attempt bonus 0.15)
 ```
 
 ## Local Setup

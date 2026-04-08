@@ -42,7 +42,7 @@ _TASK_REGISTRY = {
 
 
 class AiEmployeeEnvironment(Environment):
-    """AI Employee Work Simulator environment."""
+    """An AI agent acts as an employee completing 3 office tasks (email triage, bug prioritisation, sprint planning) under a 25-step deadline. Scoring is deterministic with partial credit and first-attempt bonuses."""
 
     SUPPORTS_CONCURRENT_SESSIONS: bool = True
 
