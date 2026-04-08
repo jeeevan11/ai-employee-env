@@ -150,6 +150,9 @@ class AiEmployeeEnvironment(Environment):
         task = self._tasks[tid]
         score = task.grade(content, ts)
 
+        # Clamp to open interval (0, 1) — validator requires strictly between
+        score = max(1e-4, min(1 - 1e-4, score))
+
         ts["attempts"] += 1
         ts["score"] = max(ts["score"], score)   # best-of-N
 
