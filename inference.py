@@ -19,10 +19,21 @@ Stdout format (mandatory — evaluated by OpenEnv harness):
 import asyncio
 import json
 import os
+import sys
 import textwrap
 from typing import Any, Dict, List, Optional
 
 from openai import OpenAI
+
+# ── Package import with fallback ───────────────────────────────────────────
+try:
+    from ai_employee_env.client import AiEmployeeEnv
+    from ai_employee_env.models import AiEmployeeAction
+except ImportError:
+    # Running directly from project root without package installed
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from client import AiEmployeeEnv  # type: ignore
+    from models import AiEmployeeAction  # type: ignore
 
 # ── Mandatory env vars ─────────────────────────────────────────────────────
 API_BASE_URL  = os.getenv("API_BASE_URL",  "https://router.huggingface.co/v1")
@@ -162,8 +173,6 @@ async def run_task(client: OpenAI, env: Any, task_id: str) -> float:
         obs = result.observation
 
         # Step 1: always select the target task first
-        from ai_employee_env.models import AiEmployeeAction
-
         select_action = AiEmployeeAction(action_type="select_task", task_id=task_id)
         result = await env.step(select_action)
         obs = result.observation
@@ -249,12 +258,9 @@ async def main() -> None:
 
     # Build env client — local Docker image or URL
     if IMAGE_NAME:
-        from ai_employee_env.client import AiEmployeeEnv
         env = AiEmployeeEnv.from_docker_image(IMAGE_NAME)
     else:
-        # Default: expect server running at localhost:8000
         server_url = os.getenv("ENV_URL", "http://localhost:8000")
-        from ai_employee_env.client import AiEmployeeEnv
         env = AiEmployeeEnv(base_url=server_url)
 
     scores: List[float] = []
@@ -264,6 +270,8 @@ async def main() -> None:
             for task_id in TASK_IDS:
                 score = await run_task(client, env, task_id)
                 scores.append(score)
+    except Exception as exc:
+        print(f"[DEBUG] Main error: {exc}", flush=True)
     finally:
         mean_score = sum(scores) / len(scores) if scores else 0.0
         print(f"\n[SUMMARY] tasks={len(scores)} mean_score={mean_score:.4f} scores={scores}", flush=True)
