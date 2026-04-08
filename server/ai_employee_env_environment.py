@@ -216,7 +216,7 @@ class AiEmployeeEnvironment(Environment):
                 "difficulty": task.difficulty,
                 "description": task.description,
                 "status": ts["status"],
-                "score": ts["score"],
+                "score": max(1e-4, min(1 - 1e-4, ts["score"])),
                 "attempts": ts["attempts"],
                 "deadline_steps": ts["deadline_steps"],
             })

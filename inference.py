@@ -238,7 +238,7 @@ async def run_task(client: OpenAI, env: Any, task_id: str) -> float:
         # Score = best score achieved on this specific task
         task_scores = [t["score"] for t in obs.tasks if t["task_id"] == task_id]
         score = task_scores[0] if task_scores else 0.0
-        score = min(max(score, 0.0), 1.0)
+        score = max(1e-4, min(1 - 1e-4, score))
         success = score >= SUCCESS_THRESHOLD
 
     except Exception as exc:
