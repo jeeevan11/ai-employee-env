@@ -20,7 +20,10 @@ from openenv.core import EnvClient
 from openenv.core.client_types import StepResult
 from openenv.core.env_server.types import State
 
-from .models import AiEmployeeAction, AiEmployeeObservation
+try:
+    from .models import AiEmployeeAction, AiEmployeeObservation
+except ImportError:
+    from models import AiEmployeeAction, AiEmployeeObservation  # type: ignore
 
 
 class AiEmployeeEnv(EnvClient[AiEmployeeAction, AiEmployeeObservation, State]):
