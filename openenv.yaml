@@ -1,0 +1,6 @@
+spec_version: 1
+name: ai_employee_env
+type: space
+runtime: fastapi
+app: server.app:app
+port: 8000
