@@ -4,6 +4,7 @@ emoji: 💼
 colorFrom: blue
 colorTo: indigo
 sdk: docker
+app_port: 8000
 pinned: false
 tags:
   - openenv
@@ -14,19 +15,21 @@ TEST
 
 # AI Employee Work Simulator
 
-An [OpenEnv](https://github.com/meta-pytorch/OpenEnv) environment where an agent acts as an AI employee completing real-world office tasks under deadline pressure.
+An [OpenEnv](https://github.com/meta-pytorch/OpenEnv) environment where an AI agent acts as an employee completing real-world office tasks under deadline pressure. Built for the OpenEnv Round 1 Hackathon by team **WooshiWooshi**.
 
 ## Environment Description
 
-The agent must complete **3 tasks** of increasing difficulty by selecting tasks, submitting formatted answers, and managing limited steps. Each task has a deterministic grader scoring 0.0–1.0.
+The agent must complete **3 tasks** of increasing difficulty by selecting tasks, submitting formatted answers, and managing a limited step budget. Each task has a deterministic grader scoring 0.0–1.0.
+
+**Validated:** 6/6 OpenEnv compliance checks pass. Live score: **3.38 / 3.45 max** (97.9%).
 
 ## Tasks
 
 | Task ID | Difficulty | Description | Max Score |
 |---|---|---|---|
 | `email_categorizer` | Easy | Classify 10 emails as `urgent`, `normal`, or `spam` | 1.0 |
-| `bug_prioritizer` | Medium | Rank 5 bug reports by priority (highest → lowest) | 1.0 |
-| `sprint_planner` | Hard | Order 8 work items respecting dependencies, within budget | 1.0 |
+| `bug_prioritizer` | Medium | Rank 5 bug reports by priority (highest → lowest) using severity + users affected | 1.0 |
+| `sprint_planner` | Hard | Order 8 work items respecting dependencies, within a 30h budget, minimising time to T4 | 1.0 |
 
 ## Action Space
 
@@ -34,7 +37,7 @@ The agent must complete **3 tasks** of increasing difficulty by selecting tasks,
 {
   "action_type": "select_task | submit_answer | request_info | skip_task",
   "task_id": "<task id — only for select_task>",
-  "content": "<JSON answer — only for submit_answer>"
+  "content": "<JSON answer string — only for submit_answer>"
 }
 ```
 
@@ -42,8 +45,8 @@ The agent must complete **3 tasks** of increasing difficulty by selecting tasks,
 |---|---|---|
 | `select_task` | Activate a task | 0.0 |
 | `submit_answer` | Grade the answer | 0.0–1.15 (score + first-attempt bonus) |
-| `request_info` | Get a hint | -0.05 |
-| `skip_task` | Abandon task | -0.40 |
+| `request_info` | Get a hint | −0.05 |
+| `skip_task` | Abandon task | −0.40 |
 
 ## Observation Space
 
@@ -61,39 +64,52 @@ The agent must complete **3 tasks** of increasing difficulty by selecting tasks,
 
 ## Reward Function
 
-- **Dense**: partial credit on every submission (`score × 0.4`)
+- **Dense**: partial credit on every submission (`score × 1.0`)
 - **First-attempt bonus**: +0.15 for scoring ≥ 0.9 on first try
+- **Step budget**: 25 steps per episode across all 3 tasks
 - **Max possible**: ~3.45 across all 3 tasks
 
-## Setup
+## Graders
 
-### Local (uv — recommended)
+| Task | Method |
+|---|---|
+| `email_categorizer` | Exact match per email (e5 accepts `urgent` or `normal`) |
+| `bug_prioritizer` | Kendall's tau — partial credit for near-correct orderings |
+| `sprint_planner` | 3-component score: dependency order (40%) + budget (30%) + T4 speed (30%) |
 
-```bash
-cd ai_employee_env
-uv run server
+## Quick Start
+
+```python
+from ai_employee_env import AiEmployeeAction, AiEmployeeEnv
+
+async with AiEmployeeEnv.from_env("piroBeastie/ai-employee-env") as env:
+    await env.reset()
+    await env.step(AiEmployeeAction(action_type="select_task", task_id="email_categorizer"))
+    result = await env.step(AiEmployeeAction(
+        action_type="submit_answer",
+        content='{"e1":"urgent","e2":"normal","e3":"spam","e4":"urgent","e5":"normal","e6":"spam","e7":"urgent","e8":"normal","e9":"urgent","e10":"normal"}'
+    ))
+    print(result.reward)  # 1.15
 ```
 
-### Local (pip)
+## Local Setup
 
+### pip
 ```bash
 pip install openenv-core fastapi uvicorn pydantic
 uvicorn server.app:app --host 0.0.0.0 --port 8000
 ```
 
 ### Docker
-
 ```bash
 docker build -t ai-employee-env -f server/Dockerfile .
 docker run -p 8000:8000 ai-employee-env
 ```
 
-## Test Endpoints
+## Test & Validate
 
 ```bash
 curl http://localhost:8000/health
-curl -X POST http://localhost:8000/reset -H "Content-Type: application/json" -d '{}'
-curl http://localhost:8000/state
 openenv validate --url http://localhost:8000
 ```
 
@@ -106,16 +122,6 @@ export MODEL_NAME=Qwen/Qwen2.5-72B-Instruct
 python inference.py
 ```
 
-## Deploy to Hugging Face Spaces
+## Live Space
 
-```bash
-huggingface-cli login
-openenv push --repo-id your-username/ai-employee-env
-```
-
-## Validate
-
-```bash
-openenv validate                              # local file check
-openenv validate --url http://localhost:8000  # live server check
-```
+`https://huggingface.co/spaces/piroBeastie/ai-employee-env`
