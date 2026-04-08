@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Employee Work Simulator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 32px 16px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-bottom: 28px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: #1e2130;
+      border: 1px solid #2d3448;
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .card h2 {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #94a3b8;
+      margin-bottom: 14px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-primary  { background: #3b82f6; color: #fff; }
+    .btn-secondary { background: #334155; color: #e2e8f0; }
+    .btn-success  { background: #22c55e; color: #fff; }
+    .btn:hover:not(:disabled) { opacity: .88; }
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    /* Form */
+    label {
+      display: block;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-bottom: 4px;
+      margin-top: 12px;
+    }
+    label:first-child { margin-top: 0; }
+
+    select, input[type="text"], textarea {
+      width: 100%;
+      background: #0f1117;
+      border: 1px solid #2d3448;
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-size: 0.875rem;
+      padding: 8px 10px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    select:focus, input:focus, textarea:focus { border-color: #3b82f6; }
+    textarea { resize: vertical; font-family: "Menlo", "Courier New", monospace; min-height: 80px; }
+
+    /* Status dot */
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-bottom: 18px;
+      max-width: 960px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #334155;
+      flex-shrink: 0;
+    }
+    .dot.green  { background: #22c55e; box-shadow: 0 0 6px #22c55e88; }
+    .dot.red    { background: #ef4444; }
+    .dot.yellow { background: #eab308; }
+
+    /* Output */
+    .output-wrap {
+      grid-column: 1 / -1;
+    }
+    .output-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .output-header h2 { margin: 0; }
+    #clearBtn { font-size: 0.75rem; padding: 4px 10px; }
+
+    #output {
+      background: #0f1117;
+      border: 1px solid #2d3448;
+      border-radius: 8px;
+      padding: 14px;
+      min-height: 220px;
+      max-height: 480px;
+      overflow-y: auto;
+      font-family: "Menlo", "Courier New", monospace;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      color: #94a3b8;
+    }
+
+    .log-entry { margin-bottom: 14px; border-bottom: 1px solid #1e2130; padding-bottom: 14px; }
+    .log-entry:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .log-label { font-size: 0.7rem; color: #475569; margin-bottom: 4px; }
+    .log-ok  { color: #4ade80; }
+    .log-err { color: #f87171; }
+    .log-info { color: #60a5fa; }
+
+    /* Task badges */
+    .task-status {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .ts-pending   { background:#1e293b; color:#94a3b8; }
+    .ts-active    { background:#1d3461; color:#60a5fa; }
+    .ts-completed { background:#14532d; color:#4ade80; }
+    .ts-failed    { background:#450a0a; color:#f87171; }
+    .ts-skipped   { background:#292524; color:#a8a29e; }
+
+    /* Quick-fill buttons */
+    .quickfill { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .qf {
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      background: #1e2130;
+      border: 1px solid #2d3448;
+      border-radius: 4px;
+      color: #94a3b8;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .qf:hover { background: #2d3448; color: #e2e8f0; }
+
+    /* Step count badge */
+    #stepBadge {
+      display: inline-block;
+      background: #1e2130;
+      border: 1px solid #2d3448;
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-left: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <div style="max-width:960px;margin:0 auto 12px;">
+    <h1>AI Employee Work Simulator <span id="stepBadge">step 0</span></h1>
+    <p class="subtitle">OpenEnv environment — localhost:8000</p>
+  </div>
+
+  <div class="status-row">
+    <span class="dot" id="serverDot"></span>
+    <span id="serverStatus">Checking server…</span>
+  </div>
+
+  <div class="grid">
+
+    <!-- Episode controls -->
+    <div class="card">
+      <h2>Episode Controls</h2>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="resetBtn">Reset Episode</button>
+        <button class="btn btn-secondary" id="stateBtn">Get State</button>
+      </div>
+    </div>
+
+    <!-- Step / Action -->
+    <div class="card">
+      <h2>Step — Send Action</h2>
+
+      <label>action_type</label>
+      <select id="actionType">
+        <option value="select_task">select_task</option>
+        <option value="submit_answer">submit_answer</option>
+        <option value="request_info">request_info</option>
+        <option value="skip_task">skip_task</option>
+      </select>
+
+      <label>task_id <span style="color:#475569">(for select_task)</span></label>
+      <select id="taskId">
+        <option value="">— none —</option>
+        <option value="email_categorizer">email_categorizer (easy)</option>
+        <option value="bug_prioritizer">bug_prioritizer (medium)</option>
+        <option value="sprint_planner">sprint_planner (hard)</option>
+      </select>
+
+      <label>content <span style="color:#475569">(for submit_answer — paste JSON here)</span></label>
+      <textarea id="content" placeholder='{"e1":"urgent","e2":"normal",...}'></textarea>
+
+      <div class="quickfill">
+        <span style="font-size:.7rem;color:#475569;align-self:center;">Quick fill:</span>
+        <button class="qf" id="qfEmail">Email answer</button>
+        <button class="qf" id="qfBug">Bug answer</button>
+        <button class="qf" id="qfSprint">Sprint answer</button>
+      </div>
+
+      <div style="margin-top:14px;">
+        <button class="btn btn-success" id="stepBtn">Send Step</button>
+      </div>
+    </div>
+
+    <!-- Output -->
+    <div class="card output-wrap">
+      <div class="output-header">
+        <h2>Response Log</h2>
+        <button class="btn btn-secondary" id="clearBtn">Clear</button>
+      </div>
+      <div id="output"><span style="color:#334155">Waiting for actions…</span></div>
+    </div>
+
+  </div>
+
+<script>
+const BASE = 'http://localhost:8000';
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const out = $('output');
+
+function ts() {
+  const d = new Date();
+  return d.toTimeString().slice(0,8);
+}
+
+function log(label, data, isErr = false) {
+  if (out.children.length === 1 && out.children[0].tagName !== 'DIV') {
+    out.innerHTML = '';
+  }
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+
+  const lbl = document.createElement('div');
+  lbl.className = 'log-label';
+  lbl.textContent = `${ts()}  ${label}`;
+  entry.appendChild(lbl);
+
+  const pre = document.createElement('pre');
+  pre.className = isErr ? 'log-err' : (label.includes('STATE') ? 'log-info' : 'log-ok');
+  pre.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+  entry.appendChild(pre);
+
+  out.insertBefore(entry, out.firstChild);
+}
+
+function setLoading(btn, loading) {
+  btn.disabled = loading;
+  btn.textContent = loading ? '…' : btn.dataset.label;
+}
+
+async function apiFetch(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const res = await fetch(BASE + path, opts);
+  const text = await res.text();
+  let json;
+  try { json = JSON.parse(text); } catch { json = { raw: text }; }
+  if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { body: json });
+  return json;
+}
+
+// ── Server health check ────────────────────────────────────────────────────
+async function checkHealth() {
+  const dot = $('serverDot'), lbl = $('serverStatus');
+  try {
+    const r = await apiFetch('GET', '/health');
+    dot.className = 'dot green';
+    lbl.textContent = `Server healthy — ${BASE}`;
+  } catch {
+    dot.className = 'dot red';
+    lbl.textContent = `Server unreachable — make sure uvicorn is running on port 8000`;
+  }
+}
+checkHealth();
+
+// ── Step badge ─────────────────────────────────────────────────────────────
+function updateStepBadge(step) {
+  if (step !== undefined) $('stepBadge').textContent = `step ${step}`;
+}
+
+// ── Reset ──────────────────────────────────────────────────────────────────
+$('resetBtn').dataset.label = 'Reset Episode';
+$('resetBtn').addEventListener('click', async () => {
+  setLoading($('resetBtn'), true);
+  try {
+    const r = await apiFetch('POST', '/reset');
+    updateStepBadge(r.observation?.step ?? 0);
+    log('POST /reset', r);
+    checkHealth();
+  } catch (e) {
+    log('POST /reset  ERROR', e.body ?? e.message, true);
+  } finally {
+    setLoading($('resetBtn'), false);
+    $('resetBtn').textContent = 'Reset Episode';
+  }
+});
+
+// ── Get State ──────────────────────────────────────────────────────────────
+$('stateBtn').dataset.label = 'Get State';
+$('stateBtn').addEventListener('click', async () => {
+  setLoading($('stateBtn'), true);
+  try {
+    const r = await apiFetch('GET', '/state');
+    updateStepBadge(r.step_count);
+    log('GET /state  STATE', r);
+  } catch (e) {
+    log('GET /state  ERROR', e.body ?? e.message, true);
+  } finally {
+    setLoading($('stateBtn'), false);
+    $('stateBtn').textContent = 'Get State';
+  }
+});
+
+// ── Step ───────────────────────────────────────────────────────────────────
+$('stepBtn').dataset.label = 'Send Step';
+$('stepBtn').addEventListener('click', async () => {
+  const actionType = $('actionType').value;
+  const taskId     = $('taskId').value;
+  const rawContent = $('content').value.trim();
+
+  const action = { action_type: actionType, metadata: {} };
+  if (taskId)     action.task_id = taskId;
+  if (rawContent) action.content = rawContent;
+
+  setLoading($('stepBtn'), true);
+  try {
+    const r = await apiFetch('POST', '/step', { action });
+    updateStepBadge(r.observation?.step);
+    const label = `POST /step  [${actionType}${taskId ? ':' + taskId : ''}]  reward=${r.reward?.toFixed(2) ?? '—'}  done=${r.done}`;
+    log(label, r);
+  } catch (e) {
+    log('POST /step  ERROR', e.body ?? e.message, true);
+  } finally {
+    setLoading($('stepBtn'), false);
+    $('stepBtn').textContent = 'Send Step';
+  }
+});
+
+// ── Quick-fill answers ─────────────────────────────────────────────────────
+$('qfEmail').addEventListener('click', () => {
+  $('actionType').value = 'submit_answer';
+  $('content').value = JSON.stringify({
+    "e1":"urgent","e2":"normal","e3":"spam","e4":"urgent","e5":"normal",
+    "e6":"spam","e7":"urgent","e8":"normal","e9":"urgent","e10":"normal"
+  }, null, 2);
+});
+
+$('qfBug').addEventListener('click', () => {
+  $('actionType').value = 'submit_answer';
+  $('content').value = JSON.stringify(["B1","B5","B3","B4","B2"]);
+});
+
+$('qfSprint').addEventListener('click', () => {
+  $('actionType').value = 'submit_answer';
+  $('content').value = JSON.stringify(["T1","T5","T3","T2","T4","T6","T7","T8"]);
+});
+
+// ── Clear ──────────────────────────────────────────────────────────────────
+$('clearBtn').addEventListener('click', () => {
+  out.innerHTML = '<span style="color:#334155">Waiting for actions…</span>';
+  $('stepBadge').textContent = 'step 0';
+});
+
+// ── Auto-clear task_id when not needed ────────────────────────────────────
+$('actionType').addEventListener('change', () => {
+  const at = $('actionType').value;
+  if (at !== 'select_task') $('taskId').value = '';
+  if (at !== 'submit_answer') $('content').value = '';
+});
+</script>
+</body>
+</html>

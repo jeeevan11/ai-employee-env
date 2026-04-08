@@ -23,6 +23,8 @@ except Exception as e:
         "openenv-core is required. Install with: pip install openenv-core"
     ) from e
 
+from fastapi.middleware.cors import CORSMiddleware
+
 try:
     from ..models import AiEmployeeAction, AiEmployeeObservation
     from .ai_employee_env_environment import AiEmployeeEnvironment
@@ -36,6 +38,14 @@ app = create_app(
     AiEmployeeObservation,
     env_name="ai_employee_env",
     max_concurrent_envs=4,
+)
+
+# Allow browser requests from file:// and any origin (needed for the frontend)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
