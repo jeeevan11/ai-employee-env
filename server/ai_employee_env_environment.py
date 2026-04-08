@@ -117,7 +117,7 @@ class AiEmployeeEnvironment(Environment):
         clamped_tasks = {}
         for tid, ts in self._state["tasks"].items():
             ct = dict(ts)
-            ct["score"] = max(1e-4, min(1 - 1e-4, ct["score"]))
+            ct["score"] = max(0.01, min(0.99, ct["score"]))
             clamped_tasks[tid] = ct
         return State(
             episode_id=self._episode_id,
@@ -157,7 +157,7 @@ class AiEmployeeEnvironment(Environment):
         score = task.grade(content, ts)
 
         # Clamp to open interval (0, 1) — validator requires strictly between
-        score = max(1e-4, min(1 - 1e-4, score))
+        score = max(0.01, min(0.99, score))
 
         ts["attempts"] += 1
         ts["score"] = max(ts["score"], score)   # best-of-N
@@ -222,7 +222,7 @@ class AiEmployeeEnvironment(Environment):
                 "difficulty": task.difficulty,
                 "description": task.description,
                 "status": ts["status"],
-                "score": max(1e-4, min(1 - 1e-4, ts["score"])),
+                "score": max(0.01, min(0.99, ts["score"])),
                 "attempts": ts["attempts"],
                 "deadline_steps": ts["deadline_steps"],
             })
